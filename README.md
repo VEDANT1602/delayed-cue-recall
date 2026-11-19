@@ -1,33 +1,12 @@
-# Predicting corridor texture during delayed cue recall
+# Why 79% delayed recall was a misleading average
 
-A controller sees a left or right cue once, then walks past a sequence of textures before it has to choose a turn. The textures follow a learnable pattern that carries no information about the cue. Can learning to predict the next texture also help the controller remember the entrance sign?
+At 60 training updates, a recurrent controller learning to predict the next corridor texture recalled the entrance cue on 79.17% of trials with a 16-step delay. Looking at individual seeds changes that picture. Seven networks got all 1,024 choices right. Four got exactly half right. The twelfth got 513 right. [Perfect seed](results.csv?plain=1#L25) · [Chance-level seed](results.csv?plain=1#L205) · [513-correct seed](results.csv?plain=1#L685)
 
-[Read the manuscript (PDF)](manuscript.pdf) · [Read the Markdown version](manuscript.md) · [Inspect the seed-level results](results.csv)
+Every texture sequence appears twice, once with each cue label. Erasing the cue gives identical inputs for the pair and yields exactly 50% accuracy. This controls for the possibility that the network inferred the turn from later textures. Twelve seeds pair initial weights and training batches across choice-only training and three auxiliary objectives. Training delays are 2, 4 and 8 steps. [Pair construction](run.py#L29)
 
-![At delay 16, recall accuracy for four objectives at 20, 60 and 220 training updates](figure.png)
+![Choice recall over checkpoints at a 16-step delay](figure.png)
 
-## Experiment
-
-The four possible textures form a cycle. From the current texture, the next is the clockwise neighbor with probability 0.8 and the counterclockwise neighbor otherwise. Each generated path appears twice, once with the left cue and once with the right. This gives a direct control for information leakage. Erasing the entrance cue makes the two inputs identical, so any deterministic classifier must get one of the two labels right.
-
-The 12-unit recurrent network is trained under four objectives. Choice-only training predicts the turn at the end. The other objectives add a prediction of the next texture, a shuffled texture target, or a repeated copy of the entrance cue. Twelve seeds pair the initial weights and training batches across all four objectives. Every model sees delays of 2, 4 and 8 steps in training. Delays of 16 and 32 test whether the cue survives beyond the training range.
-
-## Findings
-
-After 220 updates, all 48 controllers made the correct choice in every tested episode at all five delays. At delay 16, the next-texture head predicted upcoming observations with 79.89% accuracy, close to the 80% expected accuracy of always choosing the clockwise successor. Erasing the cue yielded exactly 50% choice accuracy.
-
-Once the final scores reached their ceiling, earlier checkpoints were examined. The table shows mean choice accuracy across seeds at update 60.
-
-| Steps since cue | Choice only | Next texture | Shuffled target | Repeated cue |
-| --- | ---: | ---: | ---: | ---: |
-| 2 | 100.00% | 99.10% | 100.00% | 92.47% |
-| 8 | 94.57% | 80.40% | 89.31% | 74.00% |
-| 16 | 95.15% | 79.17% | 88.24% | 66.69% |
-| 32 | 91.79% | 79.17% | 85.92% | 66.64% |
-
-At delay 16 the paired difference between next-texture and choice-only training was −15.97 percentage points. Seven of the 12 next-texture models got all 1,024 choices right. The other five scored 512 or 513. The mean therefore conceals a sharp difference between seeds. The intermediate-checkpoint results are exploratory. Testing a preselected checkpoint on new seeds and on a generator where texture depends on the cue would help distinguish delayed optimization from an effect specific to predictable distractors.
-
-This is a supervised symbolic sequence task with forced forward movement and one bit to retain. All timing, cues and choices are generated. Behavioral claims concern these trained networks.
+The choice-only comparison at the same 60-update checkpoint scored 95.15%. The archived paired difference is 15.97 percentage points in its favor, calculated before rounding the group means. By 220 updates, all 48 models had perfect recall at every tested delay. The earlier checkpoint was examined after that ceiling appeared. A new set of seeds with a checkpoint chosen in advance would be needed to test the early difference independently. This experiment concerns supervised recall of one bit on symbolic paths. [Seed-level records](results.csv) · [Experiment and limits](manuscript.md) · [Paper PDF](manuscript.pdf)
 
 ## Reproduce
 
