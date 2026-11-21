@@ -1,0 +1,2 @@
+width,lr,optimizer,mode,control,n,treatment_accuracy,control_accuracy,difference_pp,lower_pp,upper_pp,fewer,tied,more,cosine,fraction_negative
+12,0.003,Adam,texture,choice,24,71.30940755208333,93.4326171875,-22.123209635416668,-32.03948974609375,-12.499796549479184,13,10,1,,

@@ -1,37 +1,41 @@
-# Predicting corridor texture during delayed cue recall
+# Auxiliary texture prediction can delay early cue recall in a supervised recurrent network
 
 **Vedant Thaker**  
-Working paper · 18 November 2026
+Independent Researcher, Jeffersonville, Indiana, United States  
+Correspondence: vthaker1@asu.edu  
+21 November 2026
 
 ## Abstract
 
-At a junction, the controller needs a cue from the corridor entrance even when it can already predict the textures along the way. We test that distinction in a two-choice corridor with four textures. Each texture sequence appears with both entrance cues. Recurrent controllers start from paired weights and receive identical batches and update budgets under four objectives. After 220 updates, all 48 controllers chose correctly at every tested delay, including an interval four times the longest training delay. At a held-out delay of 16 steps, the next-texture head predicted 79.89% of upcoming symbols correctly, close to the generator's 80% ceiling. Removing the cue returned choice accuracy to exactly 50%. An exploratory look at earlier checkpoints revealed what final accuracy concealed. At 60 updates and a delay of 16, mean recall was 95.15% with choice supervision alone and 79.17% with next-texture prediction. The paired difference across 12 seeds was -15.97 percentage points. In this task, learning predictable sensory structure did not accelerate retention of the cue.
+The entrance cue in a symbolic corridor determines a later choice. Its intervening textures are predictable and independent of the cue. After 220 updates, all 48 original networks recalled every tested cue. At 60 updates, adding next-texture loss reduced recall at a 16-step delay. In a publicly specified confirmation with 24 previously unused training seeds, mean recall was 93.43% with choice-only supervision and 71.31% with the added loss (paired difference −22.12 percentage points, 95% seed-bootstrap interval −32.04 to −12.50). Across 18 optimizer, learning-rate and width settings the difference ranged from −26.08 to +0.02 points. At the reference setting, gating the auxiliary loss by the sign of its encoder-gradient alignment recovered 12.01 points relative to always using the loss. On measured smartphone activity sequences the corresponding fixed auxiliary loss changed early activity accuracy by +0.94 points (−2.46 to +4.64). The effect concerns early cue retention in a specific training regime.
 
-## 1. What must a controller remember?
+## Delayed choice with a predictable distractor
 
-A corridor can have an obvious visual rhythm and still reveal nothing about the turn at its end. Consider a sign at the entrance that indicates left or right. A controller must keep one bit through the corridor. Predicting the next wall texture is a different problem. Whether these two objectives help one another is an empirical question about the representation and the training budget.
+Jaderberg et al. used auxiliary reinforcement and prediction tasks to train agents [1], and Mirowski et al. used depth and loop-closure prediction during navigation [2]. Ororbia and Kelly studied predictive processing and associative memory in maze learning [3]. In an environment where action affects future observations, a better predictor may also help the agent gather evidence for its eventual choice. The forced corridor removes that interaction.
 
-Jaderberg et al. showed that auxiliary objectives can improve learning in reinforcement-learning environments [1]. Mirowski et al. used auxiliary predictions in agents learning to navigate complex three-dimensional environments [2]. Ororbia and Kelly evaluated a predictive-processing cognitive architecture with associative memory on four maze tasks, including one that tests memory [3]. These systems combine multiple mechanisms and evaluate agents that act in an environment. The present task isolates the memory component using a supervised recurrent choice model and a known transition distribution. It asks how a useful sensory predictor affects the speed and eventual accuracy of a different decision.
+At the entrance a cue specifies the correct response. The subsequent texture sequence has its own predictable transitions and carries no information about the cue. This construction lets the experiment measure recall and next-symbol prediction separately. The one-bit result does not establish a mechanism of biological memory.
 
-The distinction also matters for interpreting a model's outputs. Work on population codes shows how a particular interpretation of the variables carried by neural activity depends on an explicit generative model [4]. Here the generating variables are known by design. A texture can be predicted well even when the controller has forgotten the cue. The experiment therefore tests the choice directly and includes an intervention that removes its only source of information.
+## Generator, counterbalancing and controls
 
-## 2. A corridor in which texture cannot reveal the turn
+Each observation has six channels. The first observation is a one-hot binary cue, followed by d one-hot textures drawn from a four-state cycle. The first texture is uniform. For each transition, including the symbol predicted after the last input, the next state moves clockwise with probability 0.8 and counterclockwise otherwise. Texture generation is independent of cue identity.
 
-Each episode begins with a left or right entrance token. At each of d following steps the controller observes one of four textures arranged on a cycle. The first texture is uniform. Each transition advances one position clockwise with probability 0.8 and moves one position counterclockwise with probability 0.2. After the final observed texture, the correct response is the entrance cue. The model receives six binary input channels, two for cue identity and four for texture. Cue channels are zero throughout the corridor. Textures have no dependence on the cue. The task has forced forward movement until the terminal choice. There is no path planning or reward-driven exploration.
+Every sampled trajectory appears twice with opposite cue labels in the same batch. Evaluation uses 512 independently sampled paths per training seed and delay, each paired across the two cues for 1,024 episodes. At a fixed seed and delay, all objectives and checkpoints see the same held-out examples. Sampling streams differ between training and test. At short delays, independent streams can produce identical paths. Erasing the cue makes each pair identical except for its label. A deterministic classifier must choose correctly on exactly one member of each pair.
 
-Every sampled texture path appears twice in the same batch, once with each cue. This pairing removes an accidental correlation that a finite training set could otherwise contain. Balancing the held-out examples in the same way also gives an exact intervention check. With the initial cue erased, the two episodes in a pair are identical and have opposite correct answers. Any deterministic classifier must get exactly one right. Test paths use a separate random stream from training. At short delays the small alphabet allows repeated paths, so independent draws need not be unique paths. Delays of 16 and 32 are entirely absent from training.
+## Learning objectives and matched training budgets
 
-All models use one tanh recurrent layer of width 12, a two-logit choice head and a four-logit auxiliary head. They contain 318 parameters, of which 52 belong to the auxiliary head and receive no gradient in the choice-only condition. The first objective minimizes terminal cross-entropy. The second adds next-texture cross-entropy averaged across corridor steps at weight 0.5. Its target after the last observation is one additional sample from the same transition rule. The third uses the same auxiliary weight but shuffles the target trajectories across batch members. This preserves their marginal distribution while weakening their relationship to a particular input. The fourth asks the auxiliary head to repeat the original cue at every corridor step. It uses the same four logits with labels restricted to two classes and receives extra cue supervision.
+The encoder is a width-12 tanh recurrent layer with six inputs. Two linear heads produce two choice logits and four auxiliary logits. Of 318 trainable parameters, 52 belong to the auxiliary head. All variants minimize cross-entropy on the terminal choice. Three conditions add auxiliary cross-entropy, averaged across texture steps, at weight 0.5. The true-texture condition predicts the next observation. The shuffled condition permutes target trajectories across batch members. The repeated-cue condition predicts the entrance label at every step, using two of the four output classes.
 
-The experiment uses 12 seeds and four objectives. Within a seed, all four start with identical network weights and see the same ordered training batches. Adam takes 220 updates at a learning rate of 0.003. Each update sees 24 counterbalanced pairs at one uniformly sampled delay from 2, 4 and 8. The joint gradient norm is clipped at one. Equal updates match data exposure. A model with the additional head loss performs more computation per update. There is no early stopping or tuning on the longer delays. At each test delay, each seed contributes 512 independently drawn texture paths, or 1,024 cue-labeled episodes.
+Each of 12 seeds defines identical initial weights and ordered batches across all four objectives. One update contains 24 trajectory pairs at a delay sampled uniformly from 2, 4 and 8 steps. Adam uses learning rate 0.003 and gradient clipping at norm one. Training ends at 220 updates. Evaluation includes delays 2, 4, 8, 16 and 32 at updates 20, 60 and 220. Equal updates give equal data exposure, although the auxiliary objectives require additional computation.
 
-## 3. A perfect final score conceals a learning difference
+## Original training trajectories
 
-All conditions reach 100% choice accuracy on all five delays after 220 updates. That includes 32 distractor steps after training only as far as eight. The full comparison gives 240 seed-by-objective-by-delay cells at the final checkpoint. Every cell has 1,024 correct choices. The cue-erasure test gives 512 correct in all cells. The paired construction makes the latter count exact. The former establishes successful recall on these samples, without establishing how long an arbitrarily extended recurrence could maintain the bit.
+After 220 updates, all 240 seed–objective–delay cells had 1,024 correct choices. Cue erasure yielded exactly 512 correct throughout. At delay 16, the trained next-texture head reached 79.89% accuracy, close to the generator’s 80% optimal expected one-step accuracy. The untrained auxiliary head under choice-only training scored 24.92%. These measurements establish recall and texture prediction on the tested sample and lengths.
 
-Earlier checkpoints were added after the terminal ceiling became apparent. Their comparisons are exploratory. Table 1 reports mean choice accuracy across the 12 seeds at update 60. The first three rows use delays drawn from the training set, and the last two use unseen lengths. Every entry uses new draws of the corridor textures.
+The original early checkpoints were inspected after the ceiling was observed. At update 60 and delay 16, seven of the 12 texture-supervised models got all 1,024 choices right, four got 512, and one got 513. Their 79.17% mean masks this separation across seeds. Choice-only training averaged 95.15%. The paired texture-minus-choice difference from unrounded counts was −15.97 percentage points (20,000-resample seed bootstrap interval −28.62 to −3.73). This interval was exploratory across the inspected checkpoints and delays.
 
-| Delay in steps | Choice only % | Next texture % | Shuffled target % | Repeated cue % |
+At update 20 and delay 16 all objectives remained between 50.00% and 50.22%. At delay two, choice-only and next-texture accuracy were already 81.66% and 71.00%. The next-texture head’s own accuracy at delay 16 reached 58.89% by update 60. Neither the intermediate choices nor the texture predictions can be recovered from the final choice ceiling alone.
+
+| Delay | Choice only | Texture | Shuffled | Repeat cue |
 | --- | --- | --- | --- | --- |
 | 2 | 100.00 | 99.10 | 100.00 | 92.47 |
 | 4 | 100.00 | 87.80 | 98.86 | 87.72 |
@@ -39,38 +43,94 @@ Earlier checkpoints were added after the terminal ceiling became apparent. Their
 | 16 | 95.15 | 79.17 | 88.24 | 66.69 |
 | 32 | 91.79 | 79.17 | 85.92 | 66.64 |
 
-![Figure 1](figure.png)
+Table 1. Mean choice accuracy (%) after 60 updates on the original 12 seeds. Delays 16 and 32 were held out from training.
 
-Figure 1. Mean recall across 12 seeds at the 16-step held-out delay. Points show the three measured checkpoints. The lines connect measurements. Performance at 220 updates hides the early differences between objectives.
+![Mean recall at delay 16 on the original 12 paired seeds](figure-1.png)
 
-At delay 16, seven of the next-texture runs already make all 1,024 choices correctly. The other five get 512 or 513 right. A mean near 80% therefore describes a mixture of nearly perfect and chance-level controllers. It does not describe how a typical controller behaves on four out of five individual trials. The choice-only and texture conditions differ by -15.97 percentage points when computed as texture minus choice. A descriptive percentile bootstrap across the 12 paired seeds gives an interval from -28.62 to -3.73 points. The included script uses 20,000 resamples. Episodes sharing the same trained network are kept together. This interval applies to the chosen checkpoint and generator and carries no correction for the other inspected checkpoints or delays.
+Figure 1. Mean recall at delay 16 on the original 12 paired seeds. Each point is a measured checkpoint. All four conditions reach the ceiling by update 220.
 
-At 20 updates, all four conditions score between 50.00% and 50.22% at delay 16. Shorter delays already separate them. At delay two, choice supervision alone gives 81.66% and texture prediction gives 71.00%. By the final checkpoint that gap has disappeared. Repeating the task-relevant cue at every step also produces slower recall at update 60. Extra supervision, even for the right bit, does not guarantee faster optimization under a single shared learning rate and loss weight.
+## Previously reported independent seed block
 
-## 4. Did the prediction head learn its own task?
+The November 20 extension fixed a single primary endpoint before computing the new results: percentage-point change in recall at update 60, delay 16, for a next-texture loss of weight 0.5. Its locally recorded analysis plan was recorded before training on seeds 1000–1023. At each seed, choice-only and all three texture weights used paired initial weights, training trajectories and held-out examples. Intervals use 20,000 percentile bootstrap resamples of whole paired seeds. Additional loss weights are descriptive.
 
-At delay 16 and update 220, the next-texture head gets 79.89% of transitions right. A predictor that always chooses the clockwise successor has an expected accuracy of 80% under the generator. The untrained auxiliary head in the choice-only model gets 24.92% right. Thus the final decision ceiling coexists with a large difference in predictive skill. The texture head's accuracy is 58.89% at update 60. It continues to improve after several seeds have already learned the terminal choice. These measurements separate two outcomes that an aggregate task score would combine.
+Ten of 24 seeds had worse recall with the primary weight, 14 tied and none improved. The −12.02-point paired estimate corroborates the direction of the original comparison for this generator. At weight 0.125 only two seeds differed from control. At 2.0, twenty had lower recall. These three settings show that a conclusion about auxiliary learning at weight 0.5 transfers poorly across even this limited range of weights.
 
-The matched architecture and training batches rule out different exposure to particular corridors as an explanation for the objective ordering. Several other explanations remain available. The auxiliary gradient might redirect a small recurrent state toward texture. It might simply alter gradient scale and interact with clipping or Adam. The repeated-cue variant starts with an additional head trained to suppress two unused output classes. Those optimization details can affect early results independently of a target's relevance. Hidden-state probes, gradient alignment measurements, and a sweep that changes loss weight and hidden width together could distinguish these mechanisms.
+| Weight | Cue recall with texture loss (%) | Difference, pp | 95% interval, pp |
+| --- | --- | --- | --- |
+| 0.125 | 96.22 | −0.06 | −0.16 to 0.00 |
+| 0.5 (primary) | 84.27 | −12.02 | −19.96 to −4.96 |
+| 2.0 | 61.27 | −35.01 | −43.69 to −25.81 |
 
-## 5. Scope and next experiment
+Table 2. Fresh-seed recall at 60 updates and delay 16. Choice-only accuracy averaged 96.28%. Intervals refer to variation across paired seeds.
 
-The present model has perfect one-hot sensory observations, one cue bit, a short path and no consequential action until the end. A richer task might make next observations depend on the cue, reveal a noisy version of it, or let the agent choose which sensory evidence to gather. Each change would alter what a good predictor needs to remember. A direct follow-up would vary the transition's dependence on the cue while holding the marginal texture frequencies fixed. Cues could then be erased selectively at evaluation to separate evidence reacquisition from memory retention. A biologically motivated predictive-coding model would provide a distinct architecture for that test. The current results are computational observations about supervised learning on generated sequences. They contain no measurements of human or animal cognition.
+## Registered confirmation on a separate block of 24 seeds
 
-## Reproducibility
+The original 12-seed exploration and the November 20 extension were known when the November 21 designs were specified. First, a local plan fixed a parameter sweep using seeds 2000–2011 and a separate measured-task comparison. The GitHub copy of this plan was posted during the extension. A distinct confirmatory plan was posted publicly before any fits on seeds 4000–4023. It fixed update 60, evaluation delay 16, Adam at 0.003, width 12, auxiliary weight 0.5, and a single contrast of fixed next-texture versus choice-only supervision. Its upper 95% interval endpoint had to fall below zero to support a directional cost. All 24 paired seeds were retained.
 
-Run `python run.py` with Python 3.11, NumPy 1.26 and CPU PyTorch 2.9. The script generates all observations, fixes model and sampling seeds, requests deterministic operations and writes 720 rows to `results.csv`. Each row records the seed, objective, delay, update, choice count, cue-erasure count and next-texture accuracy. Repeated evaluation at the same seed and delay uses the same held-out examples across objectives and checkpoints.
+On these held-out seeds, early cue recall fell from 93.43% to 71.31%. The paired difference was −22.12 points (95% percentile interval −32.04 to −12.50, 20,000 paired-seed resamples with random seed 42117). Thirteen seeds lost accuracy, ten tied and one improved. The upper endpoint met the registered rule. This interval quantifies training-seed and sampled-path variability under this generator. It does not cover changes of architecture, learning rate or task.
 
-## Research and writing assistance
+## How the early effect varies with optimization
 
-Vedant Thaker supplied the research brief and source materials. OpenAI Codex assisted with study design, implementation, execution, literature review and drafting. Clever Humanizer suggested edits to the abstract. The final wording was checked against the analysis.
+The local-plan sweep crossed widths 6, 12 and 24 with learning rates 0.001, 0.003 and 0.01 and two optimizers, Adam and SGD with momentum 0.9. For each of 18 cells, twelve paired seeds ran three modes to update 60: choice only, fixed next-texture loss, and a gradient-gated next-texture loss. Every comparison used the same data exposure and delay-16 test. The sweep is descriptive; intervals across its contrasts were not multiplicity adjusted.
+
+The largest mean fixed-loss deficit was 26.08 points (width six, Adam at 0.01; 100.00% control vs 73.92% with texture). At width 24, Adam at 0.003, both conditions already had perfect recall. Several SGD settings left both near chance; at width 12 and 0.003, both averaged 50.00%. Equality at either boundary leaves little information about interference. These are early-budget comparisons without separate optimizer tuning.
+
+![Mean fixed-texture minus choice-only recall at update 60 and delay 16, in percentage ](figure-2.png)
+
+Figure 2. Mean fixed-texture minus choice-only recall at update 60 and delay 16, in percentage points, for each of 18 settings. Each cell uses 12 paired seeds.
+
+## Shared gradients and a conditional auxiliary loss
+
+For every update, the gradients of choice loss and unweighted texture loss were calculated separately on the shared encoder, before combination and norm clipping. Their cosine is the dot product divided by the product of the two norms, with a numerical floor of 10⁻¹² per norm. Following the gradient-similarity idea of Du et al. [4], the gated mode used auxiliary weight 0.5 only when the cosine was positive. Otherwise the update used the choice loss alone. This binary gate on the whole auxiliary loss is one implementation of the idea.
+
+In the reference sweep cell (Adam at 0.003, width 12), mean recall was 99.27% for choice-only, 79.17% for fixed weight and 91.18% for the gate. The gate recovered 12.01 points vs fixed (paired interval 0.46 to 24.28); it remained 8.09 points below choice-only (−18.69 to −0.02). Under fixed weight the raw encoder gradients had negative cosine on 80.0% of updates (mean −0.172). Under the gate the fraction was 75.4% (mean −0.108). Negative cosines were also frequent in a ceiling cell: at width 12, Adam 0.01, fixed-weight gradients were opposed on 89.2% of updates, despite 100% recall in both conditions. Alignment alone cannot predict a deficit at the evaluated checkpoint.
+
+## Transfer check on measured activity sequences
+
+The UCI Human Activity Recognition Using Smartphones dataset contains 128-sample windows from 30 participants performing six labeled activities [5]. The official train and test sets contain 7,352 windows from 21 participants and 2,947 from nine disjoint participants. The benchmark retained the x, y and z channels of total acceleration, subsampled samples 0, 4, …, 124, and standardized channels using training data only. A width-12 tanh encoder classified activity at the last of 32 steps. Auxiliary supervision predicted the next three acceleration values by mean squared error over the 31 valid transitions; the corridor auxiliary used cross-entropy.
+
+Eight paired seeds 3000–3007 received 60 Adam updates (learning rate 0.003, batch 48). The same three modes shared the held-out windows at each pair. Fixed weight gave 43.24% versus 42.30% for classification alone, a difference of +0.94 points (−2.46 to +4.64). Gating gave 42.27%, a −0.03-point contrast with control (−3.59 to +4.00). The two raw task gradients had negative cosine on 62.3% of fixed-weight updates. The sign of the corridor result did not recur clearly here: labels and sensor dynamics share information, loss scales differ, and the budget is deliberately short. Intervals pair training seeds on one fixed subject split, not on resampled participants.
+
+## Interpretation
+
+At the reference width, learning rate and budget, auxiliary texture prediction can slow early acquisition of an independently cued decision. Counterbalancing fixes erased-cue accuracy at 50% and rules out information about the required choice in the texture sequence. The gate partly reduced the early deficit without isolating a unique mechanism: clipping, gradient direction, number of auxiliary updates and the dynamics of Adam all change or interact along the training path.
+
+Three tested recurrent widths and two optimizers constrain claims about robustness. All original models reached the later ceiling, and a real-signal task did not show a clear deficit. A causal test of representation competition would vary the cue dependence of sensory transitions, compare gates with matched random update suppression, and measure cue decodability from internal state.
+
+## Data and code availability
+
+The baseline repository contains the original training program and its standard-library verifier. The supplement contains the earlier seed extension and its locks, the new experiment code, per-seed scores, per-update alignments and the scored confirmation. Commands appear in README.md. The public confirmatory plan is at https://github.com/VEDANT1602/delayed-cue-recall/blob/ae1c428475388cee0045d20cdd02f8e175da67cb/revision/confirmatory-plan.md.
+
+[Pinned baseline](https://github.com/VEDANT1602/delayed-cue-recall/tree/686f4f7e50229f061b4efdc5cb5d3f4812a2fc48) · [Revision code and data](https://github.com/VEDANT1602/delayed-cue-recall/tree/main/revision/supplement) · [Preparation record](https://github.com/VEDANT1602/delayed-cue-recall/blob/main/revision/PREPARATION.md)
+
+## Computational verification
+
+The 720-row baseline replay matched all original choice and erasure counts. One prediction from an untrained auxiliary head differed by a single symbol in 16,384, as detailed in the previous replication record. The extension ran 648 sweep fits, 24 activity fits and a separately registered 48 confirmatory fits on CPU. Per-seed and per-update records document the grouping and the accuracy denominators. Reference software and supplementary scripts specify the dependency versions.
+
+## Author contribution
+
+Vedant Thaker is the sole author. He designed the original delayed cue-recall study, wrote its manuscript, developed its original software, and requested the comparisons and checks reported in this revision.
+
+## Use of computational assistance
+
+OpenAI Codex assisted with the original rerun, new-seed training, registered confirmation, optimizer and gradient-gating comparisons, and analysis of the UCI activity benchmark, as well as literature checks and preparation of the revised text. The author set the research question and requested the revision.
+
+## Funding
+
+This research received no specific grant from any funding agency in the public, commercial, or not-for-profit sectors.
+
+## Competing interests
+
+The author declares no competing interests.
 
 ## References
 
-[1] M. Jaderberg, V. Mnih, W. M. Czarnecki, T. Schaul, J. Z. Leibo, D. Silver and K. Kavukcuoglu. Reinforcement Learning with Unsupervised Auxiliary Tasks. ICLR, 2017. https://arxiv.org/abs/1611.05397
+[1] M. Jaderberg, V. Mnih, W. M. Czarnecki, T. Schaul, J. Z. Leibo, D. Silver and K. Kavukcuoglu. Reinforcement learning with unsupervised auxiliary tasks. ICLR (2017). https://arxiv.org/abs/1611.05397
 
-[2] P. Mirowski et al. Learning to Navigate in Complex Environments. ICLR, 2017. https://arxiv.org/abs/1611.03673
+[2] P. Mirowski et al. Learning to navigate in complex environments. ICLR (2017). https://arxiv.org/abs/1611.03673
 
-[3] A. Ororbia and M. A. Kelly. Maze Learning using a Hyperdimensional Predictive Processing Cognitive Architecture. AGI, 2022. https://arxiv.org/abs/2204.00619
+[3] A. Ororbia and M. A. Kelly. Maze learning using a hyperdimensional predictive processing cognitive architecture. Artificial General Intelligence (AGI 2022), LNCS 13539, 321–331 (2023). https://doi.org/10.1007/978-3-031-19907-3_31
 
-[4] S. Shivkumar, R. Lange, A. Chattoraj and R. Haefner. A probabilistic population code based on neural samples. NeurIPS, 2018. https://proceedings.neurips.cc/paper/2018/hash/5401acfe633e6817b508b84d23686743-Abstract.html
+[4] Y. Du, W. M. Czarnecki, S. M. Jayakumar, M. Farajtabar, R. Pascanu and B. Lakshminarayanan. Adapting auxiliary losses using gradient similarity. arXiv:1812.02224 (2018, revised 2020). https://arxiv.org/abs/1812.02224
+
+[5] J. Reyes-Ortiz, D. Anguita, A. Ghio, L. Oneto and X. Parra. Human Activity Recognition Using Smartphones [dataset]. UCI Machine Learning Repository (2013). https://doi.org/10.24432/C54S4K

@@ -1,9 +1,10 @@
 cff-version: 1.2.0
-message: "Please use this citation when referring to the research software."
+message: "Please cite this software when reusing its methods."
 type: software
-title: "Predicting corridor texture during delayed cue recall"
+title: "Auxiliary texture prediction can delay early cue recall in a supervised recurrent network"
 authors:
   - family-names: Thaker
     given-names: Vedant
 repository-code: "https://github.com/VEDANT1602/delayed-cue-recall"
-abstract: "A paired recurrent-learning benchmark for delayed recall and auxiliary next-texture prediction."
+date-released: 2026-11-21
+license: MIT
