@@ -4,11 +4,11 @@ Vedant Thaker
 Independent Researcher, Jeffersonville, Indiana, USA  
 vedant.thaker1602@gmail.com
 
-21 November 2026
+Research working paper
 
 ### Abstract
 
-A recurrent network can learn to predict the next observation while it learns which earlier observation to remember. Does that extra objective change how long reliable recall takes? Across 16 prospectively specified, paired GRU training runs, a network trained only to recover a binary cue reached sustained 90% accuracy after 70.0 optimizer updates on average. Predicting the intervening symbols as well took 78.75 updates. The paired increase was 8.75 updates (95% seed-bootstrap interval 5.63–11.88). A separate experiment asked a network to retain the recorded activity of a smartphone user across an unrelated segment of movement. There, adding a forecast of the distractor increased restricted mean time to sustained 75% validation accuracy from 350 to 733 updates. Ordinary activity classification on intact windows gave similar average scores with either objective. The learning delay appeared when the information required at the end preceded a predictable distractor.
+Predicting incoming observations gives a recurrent network an extra learning signal. Does that signal help it remember a label presented before a distractor? In 16 prospectively specified pairs of GRU runs, adding a distractor forecast delayed sustained 90% recall by 8.75 optimizer updates (70.00 versus 78.75, paired 95% interval 5.63–11.88). The original evaluation took place every ten updates. Measuring the same trajectories after every update and requiring eleven successive passing assessments gave a delay of 8.81 updates (95% interval 6.44–11.19). The effect extended to a constructed task that joined two separately recorded smartphone movements. There, one auxiliary run stayed at chance and accounted for most of the final test-accuracy difference. On intact activity windows, the mean classification scores were close. The evidence supports a learning-time cost on the two delayed tasks studied. Its practical importance for ordinary activity recognition remains uncertain.
 
 ## Why measure how long recall takes?
 
@@ -24,22 +24,27 @@ At each of 200 training updates, draw a delay uniformly from 2, 4 and 8 and samp
 
 The event occurs on the second of two consecutive visits at or above 90% accuracy. A run without an event by update 200 is right-censored there. The restricted mean time is the area under the event-free curve up to 200 [5]. Because everyone has the same administrative horizon and no earlier censoring, it also equals the mean of the event times capped at 200. Positive paired differences mean that forecasting required more updates. The percentile interval resamples complete training-seed pairs 20,000 times. It describes training variability under the specified sampling scheme. A ten-update inspection interval limits temporal resolution.
 
-The public plan reserved 16 GRU seed pairs, numbered 7900–7915, and fixed the endpoint and directional decision rule before these models ran. The rule required a positive lower endpoint of a two-sided 95% seed-bootstrap interval. Three exploratory panels used 20 distinct seed pairs per recurrent cell. These compared a tanh RNN, a gated recurrent unit [6] and an LSTM [7], each with hidden width 12. The symbolic encoders have 240, 720 and 960 trainable parameters respectively. The matched comparison is between objectives within a cell.
+The public plan reserved 16 GRU seed pairs, numbered 7900–7915, and fixed the endpoint and directional decision rule before these models ran. The rule required a positive lower endpoint of a two-sided 95% seed-bootstrap interval. Three exploratory panels used 20 seed pairs per recurrent cell, separate from the reserved block. These compared a tanh RNN, a gated recurrent unit [6] and an LSTM [7], each with hidden width 12. The symbolic encoders have 240, 720 and 960 trainable parameters respectively. The matched comparison is between objectives within a cell.
 
 ## Forecasting delayed acquisition in the reserved GRU runs
 
-All 16 runs in each confirmed condition reached the criterion. Twelve pairs took longer with joint supervision and four tied. The average increase was 8.75 updates, or 12.5% of the 70-update control mean. Using 80% or 95% accuracy also gave an 8.75-update difference in this block. All models guessed exactly half the terminal decisions when the cue was erased at the horizon. The auxiliary arm eventually passed even in pairs with an early deficit.
+All 16 runs in each arm of the prospectively specified comparison reached the criterion. Twelve pairs took longer with joint supervision and four tied. The average increase was 8.75 updates, or 12.5% of the 70-update control mean. Using 80% or 95% accuracy also gave an 8.75-update difference in this block. All models guessed exactly half the terminal decisions when the cue was erased at the horizon. The auxiliary arm eventually passed even in pairs with an early deficit.
 
-The three exploratory comparisons showed the same direction, with smaller differences for the gated cells than for the tanh cell. Their point estimates answer how each implementation responded to the extra target at the chosen width and optimizer. They do not isolate a causal effect of gate type.
+The three exploratory comparisons also favored decision-only training. Among 20 pairs per architecture, the mean delays were 15.0 updates for the tanh RNN (95% paired interval 9.0–22.5), 6.5 for the GRU (3.5–9.5), and 6.0 for the LSTM (3.0–9.0). Each estimate applies to its selected width, optimizer and test delay.
 
+## Measuring the crossing after each update
 
-| Seed panel | Pairs | Decision only | With forecast | Paired difference [95% interval] |
-| --- | --- | --- | --- | --- |
-| GRU, confirmation | 16 | 70.0 | 78.75 | +8.75 [5.63, 11.88] |
-| Tanh, exploratory | 20 | 56.5 | 71.5 | +15.0 [9.0, 22.5] |
-| GRU, exploratory | 20 | 65.0 | 71.5 | +6.5 [3.5, 9.5] |
-| LSTM, exploratory | 20 | 57.5 | 63.5 | +6.0 [3.0, 9.0] |
-Table 1. Restricted mean acquisition time in optimizer updates at a 16-observation delay. Every symbolic run crossed by 200 updates. The three exploratory intervals are descriptive.
+The 8.75-update difference is smaller than the gap between the scheduled visits. To measure what happened between visits, we reran the same 16 seed pairs and scored the fixed, delay-16 panel after each of the 200 optimizer updates. This gave 6,400 observed accuracies. All 640 correct counts at the original visits matched the archived records. An accuracy of at least 90% requires 461 correct decisions out of 512. The extra visits were selected after the primary results were known, so they assess timing resolution on those runs.
+
+The original rule inspects only the two ends of a ten-update span. With a rolling start and ten elapsed updates between inspections, the delay was 9.00 updates. Requiring a passing score at every intervening update gave a delay of 8.81 updates. Forecasting took longer in 15 of 16 pairs under this last rule, with one tie. Requiring just two adjacent passing updates also gave a delay of 9.00, but that rule confirms success after only one elapsed update. Every run crossed within the 200-update horizon under every rule.
+
+| Accuracy requirement | Decision only | With forecast | Paired delay [95% interval] |
+| --- | --- | --- | --- |
+| Two scheduled visits ten updates apart | 70.00 | 78.75 | 8.75 [5.63, 11.88] |
+| Two visits ten updates apart, any start | 64.56 | 73.56 | 9.00 [6.63, 11.31] |
+| Eleven consecutive updates | 64.75 | 73.56 | 8.81 [6.44, 11.19] |
+| Two consecutive updates | 55.56 | 64.56 | 9.00 [6.63, 11.31] |
+Table 1. Mean optimizer update at which the final required passing score was observed. Every row uses the same 16 pairs. Only the first row and its 90% decision criterion were specified prospectively.
 
 ## Remembering a measured movement after another movement
 
@@ -47,7 +52,7 @@ In a six-activity experiment, the cue itself comes from recordings. The public U
 
 Original windows overlap within subjects, so a random split of windows could leak person-specific information [9]. Seventeen people (5,996 source windows) contributed to fitting, four distinct people (1,356 windows) to validation, and the nine official test participants (2,947 windows) to final evaluation. Standardization uses fitting data alone. A width-48 GRU reads only its final state for the activity decision. The auxiliary term is 0.5 times the mean squared error of the next standardized reading within the distractor segment. Both arms see the same training examples for 1,500 updates, with 36 examples per update and Adam at 0.002. Twelve seed pairs use fixed 768-example validation and test panels. Validation visits occur every 50 updates. The event requires two consecutive visits at or above 75%, well above the one-in-six baseline.
 
-Decision-only training reached criterion in 12 of 12 runs, compared with 11 of 12 with forecasting. The restricted means were 350.0 and 733.3 updates. All twelve paired differences were positive (mean +383.3, 95% seed-bootstrap interval 237.5–566.7). At the 1,500-update horizon, the held-out test means were 90.12% and 83.06%. One auxiliary run remained at chance and largely drove that terminal difference. For the other eleven pairs, mean test accuracy was 89.99% versus 89.10%. Erasing the prefix reduced every model to exactly 128 correct out of 768. Inference about new individuals would require additional participant samples.
+Decision-only training reached criterion in 12 of 12 runs, compared with 11 of 12 with forecasting. The restricted means were 350.0 and 733.3 updates. All twelve paired differences were positive (mean +383.3, 95% seed-bootstrap interval 237.5–566.7). At the 1,500-update horizon, the held-out test means were 90.12% and 83.06%. One auxiliary run remained at chance and largely drove that terminal difference. For the other eleven pairs, mean test accuracy was 89.99% versus 89.10%. Each of those eleven still reached the criterion later with forecasting, by 314 updates on average. This leave-one-pair-out description quantifies the influence of seed 8807. The reported measured-task estimate retains all twelve pairs. Erasing the prefix reduced every model to exactly 128 correct out of 768. Inference about new individuals would require additional participant samples.
 
 ![Figure 1. Fraction of runs yet to reach the criterion at each visit. Left, 16 prospectively specified symbolic GRU pairs. Right, 12 exploratory measured activity-label pairs. The final step at 8.3% on the right contains the one administratively censored auxiliary run. The panels have different horizons and target accuracies.](study/acquisition.png)
 
@@ -67,13 +72,13 @@ The causal intervention here is the addition of a fixed auxiliary loss in indivi
 
 ## Data and code availability
 
-The companion repository contains the training scripts, per-visit counts, event times, environment versions, source audit and parameter rationale. The UCI data and license are available from reference [8]. The prospective GRU plan is preserved in public commit 68aa06cc899fd30562a3dd6359e2a350f06bcb2d. README.md identifies the exact implementation and its digest.
+The companion repository contains the training scripts, per-visit counts, event times, environment versions, source audit and parameter rationale. The UCI data and license are available from reference [8]. The GitHub plan at commit 68aa06cc899fd30562a3dd6359e2a350f06bcb2d predates training the sixteen reserved GRU pairs and covers the ten-update endpoint. The finer timing analysis uses the same seeds. The supplement also includes an unexecuted protocol for a new seed block intended for external registration.
 
 [Study files, software and source records](https://github.com/VEDANT1602/delayed-cue-recall/tree/main/study)
 
 ## Author and disclosures
 
-Vedant Thaker is the sole author and identified the question and the need to evaluate learning time, gated recurrent models and measured tasks. OpenAI Codex assisted in specifying the prospective test, implementing and running the training and analysis, checking sources and drafting the manuscript.
+Vedant Thaker is the sole author and identified the question and the need to evaluate learning time, gated recurrent models, measured tasks and evaluation after each update. OpenAI Codex assisted with the test specifications, model implementation and execution, the checkpoint and source checks, and manuscript drafting.
 
 This research received no specific grant from any funding agency in the public, commercial, or not-for-profit sectors. The author declares no competing interests.
 

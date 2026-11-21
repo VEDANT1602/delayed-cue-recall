@@ -60,3 +60,11 @@ Training seeds are replications of the learning algorithm, conditional on the sp
 ## Data and terms
 
 The input is [Human Activity Recognition Using Smartphones](https://doi.org/10.24432/C54S4K), J. Reyes-Ortiz, D. Anguita, A. Ghio, L. Oneto and X. Parra (2013), released under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The official UCI outer archive SHA-256 is `c00b803081a5c797cd5e4b83700a9810b38d53d9d84e01917e090e1fdbc81031`. `har_data.py` verifies the download, preserves activity labels and person IDs, and averages each nonoverlapping group of four raw readings. The supplied repository contains software and aggregate training records. Obtain the raw windows directly from UCI. The repository MIT software license applies to the author's software. Third-party data and dependencies retain their own terms.
+
+## Checkpoint resolution
+
+Run `python fine_resolution.py` to retrain the 16 reserved GRU seed pairs and measure the fixed delay-16 panel after each of 200 updates. Run `python fine_endpoints.py` to recover scored endpoints from the included counts without training. The script asserts agreement with all 640 archived visits. It writes rule-specific per-seed and summary files. Every-update records are retrospective analyses of known trajectories. All four event rules are specified in the paper; a passing score requires at least 461 of the 512 panel decisions to be correct. Time is the update confirming the run of qualifying assessments.
+
+The auxiliary fit for seed 8807 in the measured-label experiment failed to cross by 1,500 and had exactly 128 correct of 768 erased and intact terminal test decisions. Its paired cue-only fit scored 703 of 768 at the same horizon. The source records are `activity_memory_8807.csv` and `measured_label_events.csv`. Its exclusion is shown only as a diagnostic.
+
+A prospective external-registry draft for a fresh, unrun seed block is in [future-registration.md](future-registration.md). It does not retrospectively register the completed cadence comparison.

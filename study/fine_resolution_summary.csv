@@ -1,0 +1,5 @@
+rule,pairs,cue_events,auxiliary_events,cue_mean,auxiliary_mean,difference,interval_lower,interval_upper,slower,tied,faster
+ten_update_grid,16,16,16,70.0,78.75,8.75,5.625,11.875,12,4,0
+endpoint_pair_ten_apart,16,16,16,64.5625,73.5625,9.0,6.625,11.3125,15,1,0
+eleven_uninterrupted,16,16,16,64.75,73.5625,8.8125,6.4375,11.1875,15,1,0
+two_uninterrupted,16,16,16,55.5625,64.5625,9.0,6.625,11.3125,15,1,0

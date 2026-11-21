@@ -1,0 +1,13 @@
+# Draft for an external prospective registration
+
+Status: proposal only. No OSF accession or external registration date exists for this proposal. Results from the 16 seed pairs numbered 7900–7915 and the associated cadence sensitivity are already known. The plan below targets a fresh replication. The current paper does not report any fit on the proposed seeds.
+
+**Question.** Does forecasting the next distractor symbol at weight 0.5 delay exact-update acquisition of a binary cue in the width-12 GRU corridor task? Use the matched initialization, training data, delay-16 panel, architecture, optimizer, clipping, objective and 200-update horizon defined in the released timecourse.py and fine_resolution.py. The scope is this symbolic task.
+
+**Units and sample.** Thirty-two new, preassigned training seeds 11900–11931. For each seed, train one cue-only model and one auxiliary model. Use one CPU thread and the documented pinned environment. Within each seed the two arms share one 512-decision delay-16 panel, fixed across visits. Never drop a pair for low accuracy. Rerun original seeds after a technical interruption and retain the software log. No interim decisions or sample-size adjustment.
+
+**Observation and endpoint.** Score after every update for 200 updates. Define T as the last update of the first run of 11 consecutive assessments with at least 461 correct out of 512 on each. This spans ten elapsed updates. If no event occurs, right-censor at 200. The primary statistic is the paired mean auxiliary-minus-cue difference in restricted T through 200. Count an event at the endpoint separately from censoring. Report arm means and event counts, all pairs and the pairwise sign distribution.
+
+**Inference.** Prespecify 20,000 training-seed-pair bootstrap samples with NumPy PCG64 seed 19373 and report the two-sided 2.5th and 97.5th percentiles of the means. The prediction is supported if the lower endpoint exceeds zero; an interval containing zero is inconclusive. Log all deviations and identify analyses chosen after access to new results. Training time is measured in optimizer updates.
+
+**Deposit before execution.** Enter the hypothesis, parameters, seed list, outcomes and analysis in a dated OSF registration and attach the exact code and dependency manifest. Save the assigned registration URL and record its status and timestamp before the first fit on the new seed block. OSF distinguishes a draft from a submitted and archived registration. The release contains the claimed GitHub-timestamped historical test and the completed exploratory sensitivity only. [OSF registration guidance](https://help.osf.io/article/330-welcome-to-registrations)
