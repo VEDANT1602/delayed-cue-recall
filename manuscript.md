@@ -1,136 +1,98 @@
-# Auxiliary texture prediction can delay early cue recall in a supervised recurrent network
+# Predicting the distractor slows acquisition of delayed recall in recurrent networks
 
-**Vedant Thaker**  
-Independent Researcher, Jeffersonville, Indiana, United States  
-Correspondence: vthaker1@asu.edu  
+Vedant Thaker  
+Independent Researcher, Jeffersonville, Indiana, USA  
+vedant.thaker1602@gmail.com
+
 21 November 2026
 
-## Abstract
+### Abstract
 
-The entrance cue in a symbolic corridor determines a later choice. Its intervening textures are predictable and independent of the cue. After 220 updates, all 48 original networks recalled every tested cue. At 60 updates, adding next-texture loss reduced recall at a 16-step delay. In a publicly specified confirmation with 24 previously unused training seeds, mean recall was 93.43% with choice-only supervision and 71.31% with the added loss (paired difference −22.12 percentage points, 95% seed-bootstrap interval −32.04 to −12.50). Across 18 optimizer, learning-rate and width settings the difference ranged from −26.08 to +0.02 points. At the reference setting, gating the auxiliary loss by the sign of its encoder-gradient alignment recovered 12.01 points relative to always using the loss. On measured smartphone activity sequences the corresponding fixed auxiliary loss changed early activity accuracy by +0.94 points (−2.46 to +4.64). The effect concerns early cue retention in a specific training regime.
+A recurrent network can learn to predict the next observation while it learns which earlier observation to remember. Does that extra objective change how long reliable recall takes? Across 16 prospectively specified, paired GRU training runs, a network trained only to recover a binary cue reached sustained 90% accuracy after 70.0 optimizer updates on average. Predicting the intervening symbols as well took 78.75 updates. The paired increase was 8.75 updates (95% seed-bootstrap interval 5.63–11.88). A separate experiment asked a network to retain the recorded activity of a smartphone user across an unrelated segment of movement. There, adding a forecast of the distractor increased restricted mean time to sustained 75% validation accuracy from 350 to 733 updates. Ordinary activity classification on intact windows gave similar average scores with either objective. The learning delay appeared when the information required at the end preceded a predictable distractor.
 
-## Delayed choice with a predictable distractor
+## Why measure how long recall takes?
 
-Jaderberg et al. used auxiliary reinforcement and prediction tasks to train agents [1], and Mirowski et al. used depth and loop-closure prediction during navigation [2]. Ororbia and Kelly studied predictive processing and associative memory in maze learning [3]. In an environment where action affects future observations, a better predictor may also help the agent gather evidence for its eventual choice. The forced corridor removes that interaction.
+A network trained to remember a cue can also receive supervision at every intervening step. Predicting the next observation supplies many additional training targets. If those observations carry no information about the cue, a better forecast need not improve the final decision. Auxiliary tasks can help representation learning [1], and their gradients can support or oppose a primary objective [2]. Whether a recurrent model learns a delayed decision sooner under such supervision is an empirical question.
 
-At the entrance a cue specifies the correct response. The subsequent texture sequence has its own predictable transitions and carries no information about the cue. This construction lets the experiment measure recall and next-symbol prediction separately. The one-bit result does not establish a mechanism of biological memory.
+Delayed-copy benchmarks test whether a recurrent state carries information over intervening observations [3]. Here a terminal readout must retain a single input while a second head learns a predictable distractor. The comparison pairs the same initialization and training data across objectives. The endpoint is the update at which recall first meets a sustained accuracy criterion. Time to a specified quality target is an established perspective on training [4]. It is particularly relevant here. At update 60, six of 20 exploratory tanh networks trained with the auxiliary loss scored at most 55% while the other fourteen scored at least 95%. Their mean describes neither group well.
 
-## Generator, counterbalancing and controls
+## A paired experiment with a declared stopping criterion
 
-Each observation has six channels. The first observation is a one-hot binary cue, followed by d one-hot textures drawn from a four-state cycle. The first texture is uniform. For each transition, including the symbol predicted after the last input, the next state moves clockwise with probability 0.8 and counterclockwise otherwise. Texture generation is independent of cue identity.
+Each example starts with one of two cue symbols. Subsequent symbols occupy four positions on a cycle. From a uniform initial position the cycle advances one position with probability 0.8 and retreats one with probability 0.2. Both cue values accompany each sampled path. Predicting the cue from the path alone therefore gives exactly 50% accuracy. The decision head reads the final hidden state. In the joint objective a second head predicts the next texture at each distractor step, adding 0.5 times mean next-texture cross-entropy to terminal cue cross-entropy. The decision-only arm instantiates the same heads and sets auxiliary weight to zero.
 
-Every sampled trajectory appears twice with opposite cue labels in the same batch. Evaluation uses 512 independently sampled paths per training seed and delay, each paired across the two cues for 1,024 episodes. At a fixed seed and delay, all objectives and checkpoints see the same held-out examples. Sampling streams differ between training and test. At short delays, independent streams can produce identical paths. Erasing the cue makes each pair identical except for its label. A deterministic classifier must choose correctly on exactly one member of each pair.
+At each of 200 training updates, draw a delay uniformly from 2, 4 and 8 and sample 24 paths, giving 48 examples. Both arms within a pair see identical paths and start from identical weights. Adam uses learning rate 0.003 and gradient-norm clipping at one. Every ten updates, measure accuracy on a fixed panel of 256 independent paired paths for each test delay, giving 512 decisions. Delay 16, twice the longest training delay, is primary. Delay 8 stays inside the training span and delay 32 tests a longer extrapolation. Panel generation uses a separate random stream.
 
-## Learning objectives and matched training budgets
+The event occurs on the second of two consecutive visits at or above 90% accuracy. A run without an event by update 200 is right-censored there. The restricted mean time is the area under the event-free curve up to 200 [5]. Because everyone has the same administrative horizon and no earlier censoring, it also equals the mean of the event times capped at 200. Positive paired differences mean that forecasting required more updates. The percentile interval resamples complete training-seed pairs 20,000 times. It describes training variability under the specified sampling scheme. A ten-update inspection interval limits temporal resolution.
 
-The encoder is a width-12 tanh recurrent layer with six inputs. Two linear heads produce two choice logits and four auxiliary logits. Of 318 trainable parameters, 52 belong to the auxiliary head. All variants minimize cross-entropy on the terminal choice. Three conditions add auxiliary cross-entropy, averaged across texture steps, at weight 0.5. The true-texture condition predicts the next observation. The shuffled condition permutes target trajectories across batch members. The repeated-cue condition predicts the entrance label at every step, using two of the four output classes.
+The public plan reserved 16 GRU seed pairs, numbered 7900–7915, and fixed the endpoint and directional decision rule before these models ran. The rule required a positive lower endpoint of a two-sided 95% seed-bootstrap interval. Three exploratory panels used 20 distinct seed pairs per recurrent cell. These compared a tanh RNN, a gated recurrent unit [6] and an LSTM [7], each with hidden width 12. The symbolic encoders have 240, 720 and 960 trainable parameters respectively. The matched comparison is between objectives within a cell.
 
-Each of 12 seeds defines identical initial weights and ordered batches across all four objectives. One update contains 24 trajectory pairs at a delay sampled uniformly from 2, 4 and 8 steps. Adam uses learning rate 0.003 and gradient clipping at norm one. Training ends at 220 updates. Evaluation includes delays 2, 4, 8, 16 and 32 at updates 20, 60 and 220. Equal updates give equal data exposure, although the auxiliary objectives require additional computation.
+## Forecasting delayed acquisition in the reserved GRU runs
 
-## Original training trajectories
+All 16 runs in each confirmed condition reached the criterion. Twelve pairs took longer with joint supervision and four tied. The average increase was 8.75 updates, or 12.5% of the 70-update control mean. Using 80% or 95% accuracy also gave an 8.75-update difference in this block. All models guessed exactly half the terminal decisions when the cue was erased at the horizon. The auxiliary arm eventually passed even in pairs with an early deficit.
 
-After 220 updates, all 240 seed–objective–delay cells had 1,024 correct choices. Cue erasure yielded exactly 512 correct throughout. At delay 16, the trained next-texture head reached 79.89% accuracy, close to the generator’s 80% optimal expected one-step accuracy. The untrained auxiliary head under choice-only training scored 24.92%. These measurements establish recall and texture prediction on the tested sample and lengths.
+The three exploratory comparisons showed the same direction, with smaller differences for the gated cells than for the tanh cell. Their point estimates answer how each implementation responded to the extra target at the chosen width and optimizer. They do not isolate a causal effect of gate type.
 
-The original early checkpoints were inspected after the ceiling was observed. At update 60 and delay 16, seven of the 12 texture-supervised models got all 1,024 choices right, four got 512, and one got 513. Their 79.17% mean masks this separation across seeds. Choice-only training averaged 95.15%. The paired texture-minus-choice difference from unrounded counts was −15.97 percentage points (20,000-resample seed bootstrap interval −28.62 to −3.73). This interval was exploratory across the inspected checkpoints and delays.
 
-At update 20 and delay 16 all objectives remained between 50.00% and 50.22%. At delay two, choice-only and next-texture accuracy were already 81.66% and 71.00%. The next-texture head’s own accuracy at delay 16 reached 58.89% by update 60. Neither the intermediate choices nor the texture predictions can be recovered from the final choice ceiling alone.
-
-| Delay | Choice only | Texture | Shuffled | Repeat cue |
+| Seed panel | Pairs | Decision only | With forecast | Paired difference [95% interval] |
 | --- | --- | --- | --- | --- |
-| 2 | 100.00 | 99.10 | 100.00 | 92.47 |
-| 4 | 100.00 | 87.80 | 98.86 | 87.72 |
-| 8 | 94.57 | 80.40 | 89.31 | 74.00 |
-| 16 | 95.15 | 79.17 | 88.24 | 66.69 |
-| 32 | 91.79 | 79.17 | 85.92 | 66.64 |
+| GRU, confirmation | 16 | 70.0 | 78.75 | +8.75 [5.63, 11.88] |
+| Tanh, exploratory | 20 | 56.5 | 71.5 | +15.0 [9.0, 22.5] |
+| GRU, exploratory | 20 | 65.0 | 71.5 | +6.5 [3.5, 9.5] |
+| LSTM, exploratory | 20 | 57.5 | 63.5 | +6.0 [3.0, 9.0] |
+Table 1. Restricted mean acquisition time in optimizer updates at a 16-observation delay. Every symbolic run crossed by 200 updates. The three exploratory intervals are descriptive.
 
-Table 1. Mean choice accuracy (%) after 60 updates on the original 12 seeds. Delays 16 and 32 were held out from training.
+## Remembering a measured movement after another movement
 
-![Mean recall at delay 16 on the original 12 paired seeds](figure-1.png)
+In a six-activity experiment, the cue itself comes from recordings. The public UCI smartphone activity dataset supplies nine waist-mounted inertial channels and the activity label for each window [8]. After averaging consecutive groups of four 50 Hz samples, choose a 16-reading prefix from a labeled window and independently draw a 16-reading suffix. In each group of six examples, give the very same suffix to one prefix from each activity. The target is the observed prefix label. A tenth channel indicates which segment is currently visible. This construction makes the suffix alone exactly chance for the balanced six-class decision. It also makes the junction artificial. No claim about naturally occurring transitions follows.
 
-Figure 1. Mean recall at delay 16 on the original 12 paired seeds. Each point is a measured checkpoint. All four conditions reach the ceiling by update 220.
+Original windows overlap within subjects, so a random split of windows could leak person-specific information [9]. Seventeen people (5,996 source windows) contributed to fitting, four distinct people (1,356 windows) to validation, and the nine official test participants (2,947 windows) to final evaluation. Standardization uses fitting data alone. A width-48 GRU reads only its final state for the activity decision. The auxiliary term is 0.5 times the mean squared error of the next standardized reading within the distractor segment. Both arms see the same training examples for 1,500 updates, with 36 examples per update and Adam at 0.002. Twelve seed pairs use fixed 768-example validation and test panels. Validation visits occur every 50 updates. The event requires two consecutive visits at or above 75%, well above the one-in-six baseline.
 
-## Previously reported independent seed block
+Decision-only training reached criterion in 12 of 12 runs, compared with 11 of 12 with forecasting. The restricted means were 350.0 and 733.3 updates. All twelve paired differences were positive (mean +383.3, 95% seed-bootstrap interval 237.5–566.7). At the 1,500-update horizon, the held-out test means were 90.12% and 83.06%. One auxiliary run remained at chance and largely drove that terminal difference. For the other eleven pairs, mean test accuracy was 89.99% versus 89.10%. Erasing the prefix reduced every model to exactly 128 correct out of 768. Inference about new individuals would require additional participant samples.
 
-The November 20 extension fixed a single primary endpoint before computing the new results: percentage-point change in recall at update 60, delay 16, for a next-texture loss of weight 0.5. Its locally recorded analysis plan was recorded before training on seeds 1000–1023. At each seed, choice-only and all three texture weights used paired initial weights, training trajectories and held-out examples. Intervals use 20,000 percentile bootstrap resamples of whole paired seeds. Additional loss weights are descriptive.
+![Figure 1. Fraction of runs yet to reach the criterion at each visit. Left, 16 prospectively specified symbolic GRU pairs. Right, 12 exploratory measured activity-label pairs. The final step at 8.3% on the right contains the one administratively censored auxiliary run. The panels have different horizons and target accuracies.](study/acquisition.png)
 
-Ten of 24 seeds had worse recall with the primary weight, 14 tied and none improved. The −12.02-point paired estimate corroborates the direction of the original comparison for this generator. At weight 0.125 only two seeds differed from control. At 2.0, twenty had lower recall. These three settings show that a conclusion about auxiliary learning at weight 0.5 transfers poorly across even this limited range of weights.
+## What carries over to intact activity windows?
 
-| Weight | Cue recall with texture loss (%) | Difference, pp | 95% interval, pp |
-| --- | --- | --- | --- |
-| 0.125 | 96.22 | −0.06 | −0.16 to 0.00 |
-| 0.5 (primary) | 84.27 | −12.02 | −19.96 to −4.96 |
-| 2.0 | 61.27 | −35.01 | −43.69 to −25.81 |
+An intact activity window addresses a different decision. Every reading can carry information about the activity currently underway. Using the same 17/4/9 participant split, fit a width-48 GRU to classify complete windows and compare the same optional next-reading objective. The readout averages the recurrent states. Each of four seed pairs trains for 35 complete epochs. The earliest epoch with the best validation macro-F1 determines the checkpoint for testing. A multinomial logistic regression on 63 window summaries provides a nonrecurrent baseline.
 
-Table 2. Fresh-seed recall at 60 updates and delay 16. Choice-only accuracy averaged 96.28%. Intervals refer to variation across paired seeds.
+Mean held-out macro-F1 across the four paired GRU fits was 90.48% for activity only and 89.82% with forecasting. The logistic baseline achieved 90.56%. These close scores in four seed pairs cannot establish equivalence, but they discourage a general claim that forecasting sensor data worsens activity recognition. The measured prefix task makes the forecast target independent of the remembered activity by design. In an intact window, forecasting may reward features that the classifier needs.
 
-## Registered confirmation on a separate block of 24 seeds
-
-The original 12-seed exploration and the November 20 extension were known when the November 21 designs were specified. First, a local plan fixed a parameter sweep using seeds 2000–2011 and a separate measured-task comparison. The GitHub copy of this plan was posted during the extension. A distinct confirmatory plan was posted publicly before any fits on seeds 4000–4023. It fixed update 60, evaluation delay 16, Adam at 0.003, width 12, auxiliary weight 0.5, and a single contrast of fixed next-texture versus choice-only supervision. Its upper 95% interval endpoint had to fall below zero to support a directional cost. All 24 paired seeds were retained.
-
-On these held-out seeds, early cue recall fell from 93.43% to 71.31%. The paired difference was −22.12 points (95% percentile interval −32.04 to −12.50, 20,000 paired-seed resamples with random seed 42117). Thirteen seeds lost accuracy, ten tied and one improved. The upper endpoint met the registered rule. This interval quantifies training-seed and sampled-path variability under this generator. It does not cover changes of architecture, learning rate or task.
-
-## How the early effect varies with optimization
-
-The local-plan sweep crossed widths 6, 12 and 24 with learning rates 0.001, 0.003 and 0.01 and two optimizers, Adam and SGD with momentum 0.9. For each of 18 cells, twelve paired seeds ran three modes to update 60: choice only, fixed next-texture loss, and a gradient-gated next-texture loss. Every comparison used the same data exposure and delay-16 test. The sweep is descriptive; intervals across its contrasts were not multiplicity adjusted.
-
-The largest mean fixed-loss deficit was 26.08 points (width six, Adam at 0.01; 100.00% control vs 73.92% with texture). At width 24, Adam at 0.003, both conditions already had perfect recall. Several SGD settings left both near chance; at width 12 and 0.003, both averaged 50.00%. Equality at either boundary leaves little information about interference. These are early-budget comparisons without separate optimizer tuning.
-
-![Mean fixed-texture minus choice-only recall at update 60 and delay 16, in percentage ](figure-2.png)
-
-Figure 2. Mean fixed-texture minus choice-only recall at update 60 and delay 16, in percentage points, for each of 18 settings. Each cell uses 12 paired seeds.
-
-## Shared gradients and a conditional auxiliary loss
-
-For every update, the gradients of choice loss and unweighted texture loss were calculated separately on the shared encoder, before combination and norm clipping. Their cosine is the dot product divided by the product of the two norms, with a numerical floor of 10⁻¹² per norm. Following the gradient-similarity idea of Du et al. [4], the gated mode used auxiliary weight 0.5 only when the cosine was positive. Otherwise the update used the choice loss alone. This binary gate on the whole auxiliary loss is one implementation of the idea.
-
-In the reference sweep cell (Adam at 0.003, width 12), mean recall was 99.27% for choice-only, 79.17% for fixed weight and 91.18% for the gate. The gate recovered 12.01 points vs fixed (paired interval 0.46 to 24.28); it remained 8.09 points below choice-only (−18.69 to −0.02). Under fixed weight the raw encoder gradients had negative cosine on 80.0% of updates (mean −0.172). Under the gate the fraction was 75.4% (mean −0.108). Negative cosines were also frequent in a ceiling cell: at width 12, Adam 0.01, fixed-weight gradients were opposed on 89.2% of updates, despite 100% recall in both conditions. Alignment alone cannot predict a deficit at the evaluated checkpoint.
-
-## Transfer check on measured activity sequences
-
-The UCI Human Activity Recognition Using Smartphones dataset contains 128-sample windows from 30 participants performing six labeled activities [5]. The official train and test sets contain 7,352 windows from 21 participants and 2,947 from nine disjoint participants. The benchmark retained the x, y and z channels of total acceleration, subsampled samples 0, 4, …, 124, and standardized channels using training data only. A width-12 tanh encoder classified activity at the last of 32 steps. Auxiliary supervision predicted the next three acceleration values by mean squared error over the 31 valid transitions; the corridor auxiliary used cross-entropy.
-
-Eight paired seeds 3000–3007 received 60 Adam updates (learning rate 0.003, batch 48). The same three modes shared the held-out windows at each pair. Fixed weight gave 43.24% versus 42.30% for classification alone, a difference of +0.94 points (−2.46 to +4.64). Gating gave 42.27%, a −0.03-point contrast with control (−3.59 to +4.00). The two raw task gradients had negative cosine on 62.3% of fixed-weight updates. The sign of the corridor result did not recur clearly here: labels and sensor dynamics share information, loss scales differ, and the budget is deliberately short. Intervals pair training seeds on one fixed subject split, not on resampled participants.
+As a further control, binary cue recall also ran on three-axis acceleration distractors from held-out subjects. The delays associated with forecasting at 16 readings were 23.3 updates for tanh, 26.7 for GRU, and 30.0 for LSTM across twelve seed pairs per architecture. This control changes where the observations come from while retaining the artificial cue. The supplement gives the full trajectories, survivor counts and threshold sensitivities.
 
 ## Interpretation
 
-At the reference width, learning rate and budget, auxiliary texture prediction can slow early acquisition of an independently cued decision. Counterbalancing fixes erased-cue accuracy at 50% and rules out information about the required choice in the texture sequence. The gate partly reduced the early deficit without isolating a unique mechanism: clipping, gradient direction, number of auxiliary updates and the dynamics of Adam all change or interact along the training path.
+Within the specified recurrent models, forecasting a predictable but task-irrelevant segment delayed reliable access to an earlier label. Timing the transition avoids treating an average over runs at chance and runs near ceiling as a common level of partial recall. It also keeps a run that has not crossed by the horizon in the analysis.
 
-Three tested recurrent widths and two optimizers constrain claims about robustness. All original models reached the later ceiling, and a real-signal task did not show a clear deficit. A causal test of representation competition would vary the cue dependence of sensory transitions, compare gates with matched random update suppression, and measure cue decodability from internal state.
+The causal intervention here is the addition of a fixed auxiliary loss in individually matched runs. The experiment does not identify where in the network the delay arises. Numerical weight 0.5 multiplies cross-entropy in the symbol task and squared error in the sensor task, so sizes of effects across the two scales are not directly comparable. Fixed panels also leave uncertainty about other participants, sensors and tasks. Rates under longer training, larger parameter budgets and adaptive weighting remain distinct questions.
 
 ## Data and code availability
 
-The baseline repository contains the original training program and its standard-library verifier. The supplement contains the earlier seed extension and its locks, the new experiment code, per-seed scores, per-update alignments and the scored confirmation. Commands appear in README.md. The public confirmatory plan is at https://github.com/VEDANT1602/delayed-cue-recall/blob/ae1c428475388cee0045d20cdd02f8e175da67cb/revision/confirmatory-plan.md.
+The companion repository contains the training scripts, per-visit counts, event times, environment versions, source audit and parameter rationale. The UCI data and license are available from reference [8]. The prospective GRU plan is preserved in public commit 68aa06cc899fd30562a3dd6359e2a350f06bcb2d. README.md identifies the exact implementation and its digest.
 
-[Pinned baseline](https://github.com/VEDANT1602/delayed-cue-recall/tree/686f4f7e50229f061b4efdc5cb5d3f4812a2fc48) · [Revision code and data](https://github.com/VEDANT1602/delayed-cue-recall/tree/main/revision/supplement) · [Preparation record](https://github.com/VEDANT1602/delayed-cue-recall/blob/main/revision/PREPARATION.md)
+[Study files, software and source records](https://github.com/VEDANT1602/delayed-cue-recall/tree/main/study)
 
-## Computational verification
+## Author and disclosures
 
-The 720-row baseline replay matched all original choice and erasure counts. One prediction from an untrained auxiliary head differed by a single symbol in 16,384, as detailed in the previous replication record. The extension ran 648 sweep fits, 24 activity fits and a separately registered 48 confirmatory fits on CPU. Per-seed and per-update records document the grouping and the accuracy denominators. Reference software and supplementary scripts specify the dependency versions.
+Vedant Thaker is the sole author and identified the question and the need to evaluate learning time, gated recurrent models and measured tasks. OpenAI Codex assisted in specifying the prospective test, implementing and running the training and analysis, checking sources and drafting the manuscript.
 
-## Author contribution
-
-Vedant Thaker is the sole author. He designed the original delayed cue-recall study, wrote its manuscript, developed its original software, and requested the comparisons and checks reported in this revision.
-
-## Use of computational assistance
-
-OpenAI Codex assisted with the original rerun, new-seed training, registered confirmation, optimizer and gradient-gating comparisons, and analysis of the UCI activity benchmark, as well as literature checks and preparation of the revised text. The author set the research question and requested the revision.
-
-## Funding
-
-This research received no specific grant from any funding agency in the public, commercial, or not-for-profit sectors.
-
-## Competing interests
-
-The author declares no competing interests.
+This research received no specific grant from any funding agency in the public, commercial, or not-for-profit sectors. The author declares no competing interests.
 
 ## References
 
-[1] M. Jaderberg, V. Mnih, W. M. Czarnecki, T. Schaul, J. Z. Leibo, D. Silver and K. Kavukcuoglu. Reinforcement learning with unsupervised auxiliary tasks. ICLR (2017). https://arxiv.org/abs/1611.05397
+[1] M. Jaderberg et al. Reinforcement learning with unsupervised auxiliary tasks. International Conference on Learning Representations (2017). <https://arxiv.org/abs/1611.05397>
 
-[2] P. Mirowski et al. Learning to navigate in complex environments. ICLR (2017). https://arxiv.org/abs/1611.03673
+[2] Y. Du, W. M. Czarnecki, S. M. Jayakumar, M. Farajtabar, R. Pascanu and B. Lakshminarayanan. Adapting auxiliary losses using gradient similarity. arXiv:1812.02224 (2018, revised 2020). <https://arxiv.org/abs/1812.02224>
 
-[3] A. Ororbia and M. A. Kelly. Maze learning using a hyperdimensional predictive processing cognitive architecture. Artificial General Intelligence (AGI 2022), LNCS 13539, 321–331 (2023). https://doi.org/10.1007/978-3-031-19907-3_31
+[3] M. Arjovsky, A. Shah and Y. Bengio. Unitary evolution recurrent neural networks. Proceedings of Machine Learning Research 48, 1120–1128 (2016). <https://proceedings.mlr.press/v48/arjovsky16.html>
 
-[4] Y. Du, W. M. Czarnecki, S. M. Jayakumar, M. Farajtabar, R. Pascanu and B. Lakshminarayanan. Adapting auxiliary losses using gradient similarity. arXiv:1812.02224 (2018, revised 2020). https://arxiv.org/abs/1812.02224
+[4] P. Mattson et al. MLPerf training benchmark. Proceedings of Machine Learning and Systems 2, 336–349 (2020). <https://proceedings.mlsys.org/paper_files/paper/2020/hash/411e39b117e885341f25efb8912945f7-Abstract.html>
 
-[5] J. Reyes-Ortiz, D. Anguita, A. Ghio, L. Oneto and X. Parra. Human Activity Recognition Using Smartphones [dataset]. UCI Machine Learning Repository (2013). https://doi.org/10.24432/C54S4K
+[5] P. Royston and M. K. B. Parmar. Restricted mean survival time: an alternative to the hazard ratio for the design and analysis of randomized trials with a time-to-event outcome. BMC Medical Research Methodology 13, 152 (2013). <https://doi.org/10.1186/1471-2288-13-152>
+
+[6] K. Cho et al. Learning phrase representations using RNN encoder–decoder for statistical machine translation. Proceedings of EMNLP, 1724–1734 (2014). <https://doi.org/10.3115/v1/D14-1179>
+
+[7] K. Greff, R. K. Srivastava, J. Koutník, B. R. Steunebrink and J. Schmidhuber. LSTM: A search space odyssey. IEEE Transactions on Neural Networks and Learning Systems 28, 2222–2232 (2017). <https://doi.org/10.1109/TNNLS.2016.2582924>
+
+[8] J. Reyes-Ortiz, D. Anguita, A. Ghio, L. Oneto and X. Parra. Human Activity Recognition Using Smartphones [dataset]. UCI Machine Learning Repository (2013). <https://doi.org/10.24432/C54S4K>
+
+[9] A. Dehghani, O. Sarbishei, T. Glatard and E. Shihab. A quantitative comparison of overlapping and non-overlapping sliding windows for human activity recognition using inertial sensors. Sensors 19, 5026 (2019). <https://doi.org/10.3390/s19225026>

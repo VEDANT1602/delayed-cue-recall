@@ -1,0 +1,4 @@
+mode,fits,test_accuracy,test_macro_f1,earliest_selection,latest_selection
+window_logistic,1,0.9073634204275535,0.9055895424571406,0,0
+activity,4,0.903545978961656,0.9048114613258591,5,10
+auxiliary,4,0.897607736681371,0.8982370907479873,3,11
