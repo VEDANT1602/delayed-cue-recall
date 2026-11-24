@@ -1,0 +1,4 @@
+# CPython 3.12.14, single CPU thread. Linux x86_64.
+# Install torch with the CPU index as described in REGISTRY-README.md.
+torch==2.9.1+cpu
+numpy==2.3.5

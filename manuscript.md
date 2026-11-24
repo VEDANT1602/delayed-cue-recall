@@ -1,16 +1,16 @@
-# Predicting the distractor slows acquisition of delayed recall in recurrent networks
+# Distractor forecasting delayed recall acquisition on two controlled tasks
 
 Vedant Thaker  
 Independent Researcher, Jeffersonville, Indiana, USA  
 vedant.thaker1602@gmail.com
 
-Research working paper
+Learning experiment · November 24, 2026
 
 ### Abstract
 
-Predicting incoming observations gives a recurrent network an extra learning signal. Does that signal help it remember a label presented before a distractor? In 16 prospectively specified pairs of GRU runs, adding a distractor forecast delayed sustained 90% recall by 8.75 optimizer updates (70.00 versus 78.75, paired 95% interval 5.63–11.88). The original evaluation took place every ten updates. Measuring the same trajectories after every update and requiring eleven successive passing assessments gave a delay of 8.81 updates (95% interval 6.44–11.19). The effect extended to a constructed task that joined two separately recorded smartphone movements. There, one auxiliary run stayed at chance and accounted for most of the final test-accuracy difference. On intact activity windows, the mean classification scores were close. The evidence supports a learning-time cost on the two delayed tasks studied. Its practical importance for ordinary activity recognition remains uncertain.
+A recurrent classifier must preserve a cue through a sequence of distractors. A second output can predict the next distractor well even though the distractor sequence carries no information about the cue. In a width-12 gated recurrent unit (GRU), adding a next-symbol loss with weight 0.5 increased the mean time to sustained 90% recall from 70.00 to 78.75 optimizer updates. The paired difference was 8.75 updates (95% seed-bootstrap interval 5.63–11.88) across the 16 seeds and ten-update assessment schedule specified in a GitHub commit. A later analysis of the same runs at every update gave 8.81 additional updates under an eleven-consecutive-pass rule. On a second task constructed from measured smartphone movements, forecasting delayed acquisition in all twelve pairs. One failed run accounted for 88% of the summed terminal accuracy gap on that task. For intact activity windows the two training objectives differed by 0.66 percentage points in mean macro-F1 across four seeds. The evidence for a timing cost concerns the two delayed decisions with deliberately uninformative distractors.
 
-## Why measure how long recall takes?
+## Learning time under competing objectives
 
 A network trained to remember a cue can also receive supervision at every intervening step. Predicting the next observation supplies many additional training targets. If those observations carry no information about the cue, a better forecast need not improve the final decision. Auxiliary tasks can help representation learning [1], and their gradients can support or oppose a primary objective [2]. Whether a recurrent model learns a delayed decision sooner under such supervision is an empirical question.
 
@@ -24,11 +24,11 @@ At each of 200 training updates, draw a delay uniformly from 2, 4 and 8 and samp
 
 The event occurs on the second of two consecutive visits at or above 90% accuracy. A run without an event by update 200 is right-censored there. The restricted mean time is the area under the event-free curve up to 200 [5]. Because everyone has the same administrative horizon and no earlier censoring, it also equals the mean of the event times capped at 200. Positive paired differences mean that forecasting required more updates. The percentile interval resamples complete training-seed pairs 20,000 times. It describes training variability under the specified sampling scheme. A ten-update inspection interval limits temporal resolution.
 
-The public plan reserved 16 GRU seed pairs, numbered 7900–7915, and fixed the endpoint and directional decision rule before these models ran. The rule required a positive lower endpoint of a two-sided 95% seed-bootstrap interval. Three exploratory panels used 20 seed pairs per recurrent cell, separate from the reserved block. These compared a tanh RNN, a gated recurrent unit [6] and an LSTM [7], each with hidden width 12. The symbolic encoders have 240, 720 and 960 trainable parameters respectively. The matched comparison is between objectives within a cell.
+The [GitHub plan](https://github.com/VEDANT1602/delayed-cue-recall/commit/68aa06cc899fd30562a3dd6359e2a350f06bcb2d) specified 16 GRU seed pairs (7900–7915), the ten-update endpoint and a directional decision rule. Its commit timestamp is 12:32:11 UTC on November 21, 2026. The run log records a start at 12:32:32 UTC the same day. The commit documents the analytical choices. Run timing comes from the execution log. This comparison used a GitHub time stamp. The separate OSF submission described below concerns new seeds and a different endpoint. The rule required a positive lower endpoint of a two-sided 95% seed-bootstrap interval. Three exploratory panels used 20 seed pairs per recurrent cell, separate from the reserved block. These compared a tanh RNN, a gated recurrent unit [6] and an LSTM [7], each with hidden width 12. The symbolic encoders have 240, 720 and 960 trainable parameters respectively. The matched comparison is between objectives within a cell.
 
 ## Forecasting delayed acquisition in the reserved GRU runs
 
-All 16 runs in each arm of the prospectively specified comparison reached the criterion. Twelve pairs took longer with joint supervision and four tied. The average increase was 8.75 updates, or 12.5% of the 70-update control mean. Using 80% or 95% accuracy also gave an 8.75-update difference in this block. All models guessed exactly half the terminal decisions when the cue was erased at the horizon. The auxiliary arm eventually passed even in pairs with an early deficit.
+All 16 runs in each arm of the GitHub-specified comparison reached the criterion. Twelve pairs took longer with joint supervision and four tied. The average increase was 8.75 updates, or 12.5% of the 70-update control mean. Using 80% or 95% accuracy also gave an 8.75-update difference in this block. All models guessed exactly half the terminal decisions when the cue was erased at the horizon. On the same pairs, the secondary delay-8 and delay-32 panels gave mean increases of 13.13 and 7.50 updates, respectively. Those panels share the fitted weights and do not add independent training runs.
 
 The three exploratory comparisons also favored decision-only training. Among 20 pairs per architecture, the mean delays were 15.0 updates for the tanh RNN (95% paired interval 9.0–22.5), 6.5 for the GRU (3.5–9.5), and 6.0 for the LSTM (3.0–9.0). Each estimate applies to its selected width, optimizer and test delay.
 
@@ -44,7 +44,7 @@ The original rule inspects only the two ends of a ten-update span. With a rollin
 | Two visits ten updates apart, any start | 64.56 | 73.56 | 9.00 [6.63, 11.31] |
 | Eleven consecutive updates | 64.75 | 73.56 | 8.81 [6.44, 11.19] |
 | Two consecutive updates | 55.56 | 64.56 | 9.00 [6.63, 11.31] |
-Table 1. Mean optimizer update at which the final required passing score was observed. Every row uses the same 16 pairs. Only the first row and its 90% decision criterion were specified prospectively.
+Table 1. Mean optimizer update at which the final required passing score was observed. Every row uses the same 16 pairs. The GitHub plan specified the first row and its 90% decision criterion. The other rows use rules chosen after inspection.
 
 ## Remembering a measured movement after another movement
 
@@ -52,11 +52,11 @@ In a six-activity experiment, the cue itself comes from recordings. The public U
 
 Original windows overlap within subjects, so a random split of windows could leak person-specific information [9]. Seventeen people (5,996 source windows) contributed to fitting, four distinct people (1,356 windows) to validation, and the nine official test participants (2,947 windows) to final evaluation. Standardization uses fitting data alone. A width-48 GRU reads only its final state for the activity decision. The auxiliary term is 0.5 times the mean squared error of the next standardized reading within the distractor segment. Both arms see the same training examples for 1,500 updates, with 36 examples per update and Adam at 0.002. Twelve seed pairs use fixed 768-example validation and test panels. Validation visits occur every 50 updates. The event requires two consecutive visits at or above 75%, well above the one-in-six baseline.
 
-Decision-only training reached criterion in 12 of 12 runs, compared with 11 of 12 with forecasting. The restricted means were 350.0 and 733.3 updates. All twelve paired differences were positive (mean +383.3, 95% seed-bootstrap interval 237.5–566.7). At the 1,500-update horizon, the held-out test means were 90.12% and 83.06%. One auxiliary run remained at chance and largely drove that terminal difference. For the other eleven pairs, mean test accuracy was 89.99% versus 89.10%. Each of those eleven still reached the criterion later with forecasting, by 314 updates on average. This leave-one-pair-out description quantifies the influence of seed 8807. The reported measured-task estimate retains all twelve pairs. Erasing the prefix reduced every model to exactly 128 correct out of 768. Inference about new individuals would require additional participant samples.
+Decision-only training reached criterion in 12 of 12 runs, compared with 11 of 12 with forecasting. The restricted means were 350.0 and 733.3 updates. All twelve paired differences were positive (mean +383.3, 95% seed-bootstrap interval 237.5–566.7). At the 1,500-update horizon, the held-out test means were 90.12% and 83.06%. One auxiliary run remained at chance and largely drove that terminal difference. For the other eleven pairs, mean test accuracy was 89.99% versus 89.10%. Each of those eleven still reached the criterion later with forecasting, by 314 updates on average. Seed 8807 accounted for 88.5% of the summed terminal test-accuracy difference and 25.0% of the summed restricted-time difference. Its auxiliary arm reached the 1,500-update horizon without an event. The full estimate retains this pair. Erasing the prefix reduced every model to exactly 128 correct out of 768. Inference about new individuals would require additional participant samples.
 
-![Figure 1. Fraction of runs yet to reach the criterion at each visit. Left, 16 prospectively specified symbolic GRU pairs. Right, 12 exploratory measured activity-label pairs. The final step at 8.3% on the right contains the one administratively censored auxiliary run. The panels have different horizons and target accuracies.](study/acquisition.png)
+![Figure 1. Fraction of runs yet to reach the criterion at each visit. Left, 16 symbolic GRU pairs from the GitHub plan. Right, 12 exploratory measured activity-label pairs. The final step at 8.3% on the right contains the one administratively censored auxiliary run. The panels have different horizons and target accuracies.](study/acquisition.png)
 
-## What carries over to intact activity windows?
+## Classification of intact activity windows
 
 An intact activity window addresses a different decision. Every reading can carry information about the activity currently underway. Using the same 17/4/9 participant split, fit a width-48 GRU to classify complete windows and compare the same optional next-reading objective. The readout averages the recurrent states. Each of four seed pairs trains for 35 complete epochs. The earliest epoch with the best validation macro-F1 determines the checkpoint for testing. A multinomial logistic regression on 63 window summaries provides a nonrecurrent baseline.
 
@@ -68,13 +68,13 @@ As a further control, binary cue recall also ran on three-axis acceleration dist
 
 Within the specified recurrent models, forecasting a predictable but task-irrelevant segment delayed reliable access to an earlier label. Timing the transition avoids treating an average over runs at chance and runs near ceiling as a common level of partial recall. It also keeps a run that has not crossed by the horizon in the analysis.
 
-The causal intervention here is the addition of a fixed auxiliary loss in individually matched runs. The experiment does not identify where in the network the delay arises. Numerical weight 0.5 multiplies cross-entropy in the symbol task and squared error in the sensor task, so sizes of effects across the two scales are not directly comparable. Fixed panels also leave uncertainty about other participants, sensors and tasks. Rates under longer training, larger parameter budgets and adaptive weighting remain distinct questions.
+The paired intervention adds a fixed auxiliary loss. It changes both the direction and magnitude of training updates. The comparisons therefore leave gradient interference and effective step size unresolved. Numerical weight 0.5 multiplies cross-entropy in the symbol task and squared error in the sensor task, so sizes of effects across the two scales are not directly comparable. Fixed panels also leave uncertainty about other participants, sensors and tasks. Rates under longer training, larger parameter budgets and adaptive weighting remain distinct questions.
 
 ## Data and code availability
 
-The companion repository contains the training scripts, per-visit counts, event times, environment versions, source audit and parameter rationale. The UCI data and license are available from reference [8]. The GitHub plan at commit 68aa06cc899fd30562a3dd6359e2a350f06bcb2d predates training the sixteen reserved GRU pairs and covers the ten-update endpoint. The finer timing analysis uses the same seeds. The supplement also includes an unexecuted protocol for a new seed block intended for external registration.
+The companion repository contains the training scripts, per-visit counts, event times, environment versions, source audit and parameter rationale. The UCI data and license are available from reference [8]. The supplement contains the GitHub plan, execution log and separate every-update records for seeds 7900–7915. A separate [OSF registration](https://osf.io/je97u/overview) for 32 fresh pairs (11900–11931) was submitted on November 22, 2026. OSF displayed “Pending approval” on November 22. On November 24 the public API required authentication, so public approval and the archived attachment could not be verified. The 32-pair protocol targets the eleven-assessment rule on new training draws. No outcomes from those seeds appear here.
 
-[Study files, software and source records](https://github.com/VEDANT1602/delayed-cue-recall/tree/main/study)
+[Training curves, per-seed endpoints, analysis code and registration record](https://github.com/VEDANT1602/delayed-cue-recall/tree/main/study)
 
 ## Author and disclosures
 

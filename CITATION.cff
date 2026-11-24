@@ -1,10 +1,10 @@
 cff-version: 1.2.0
-message: "Please cite this software if you use it."
+message: "Cite this edition of the study software when using the included analysis."
 type: software
-title: "Predicting the distractor slows acquisition of delayed recall in recurrent networks"
+title: "Distractor forecasting delayed recall acquisition on two controlled tasks"
 authors:
   - family-names: Thaker
     given-names: Vedant
 repository-code: "https://github.com/VEDANT1602/delayed-cue-recall"
-date-released: 2026-11-21
+date-released: 2026-11-24
 license: MIT
